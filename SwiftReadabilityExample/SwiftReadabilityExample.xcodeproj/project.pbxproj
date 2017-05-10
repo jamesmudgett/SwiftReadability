@@ -12,8 +12,9 @@
 		891538CA1D248BCB00BAB813 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 891538C81D248BCB00BAB813 /* Main.storyboard */; };
 		891538CC1D248BCB00BAB813 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 891538CB1D248BCB00BAB813 /* Assets.xcassets */; };
 		891538CF1D248BCB00BAB813 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 891538CD1D248BCB00BAB813 /* LaunchScreen.storyboard */; };
-		891538F61D29DD1B00BAB813 /* SwiftReadability.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 891538F51D29DD1B00BAB813 /* SwiftReadability.framework */; };
-		891538F71D29DD1B00BAB813 /* SwiftReadability.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 891538F51D29DD1B00BAB813 /* SwiftReadability.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		891538F71D29DD1B00BAB813 /* (null) in Embed Frameworks */ = {isa = PBXBuildFile; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		FA6F2C1A1EC28F910048F259 /* SwiftReadability.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA6F2C191EC28F910048F259 /* SwiftReadability.framework */; };
+		FA6F2C1B1EC28F910048F259 /* SwiftReadability.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = FA6F2C191EC28F910048F259 /* SwiftReadability.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,7 +24,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				891538F71D29DD1B00BAB813 /* SwiftReadability.framework in Embed Frameworks */,
+				891538F71D29DD1B00BAB813 /* (null) in Embed Frameworks */,
+				FA6F2C1B1EC28F910048F259 /* SwiftReadability.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -39,7 +41,7 @@
 		891538CE1D248BCB00BAB813 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		891538D01D248BCB00BAB813 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		891538ED1D248C6B00BAB813 /* SwiftReadability.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftReadability.framework; path = "../../../../Library/Developer/Xcode/DerivedData/SwiftReadability-fktgjfhnivvydvgvpkdgaewyjctd/Build/Products/Debug-iphonesimulator/SwiftReadability.framework"; sourceTree = "<group>"; };
-		891538F51D29DD1B00BAB813 /* SwiftReadability.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; name = SwiftReadability.framework; path = "/Users/Chloe/Library/Developer/Xcode/DerivedData/SwiftReadability-fktgjfhnivvydvgvpkdgaewyjctd/Build/Products/Debug-iphoneos/SwiftReadability.framework"; sourceTree = "<absolute>"; };
+		FA6F2C191EC28F910048F259 /* SwiftReadability.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SwiftReadability.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,7 +49,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				891538F61D29DD1B00BAB813 /* SwiftReadability.framework in Frameworks */,
+				FA6F2C1A1EC28F910048F259 /* SwiftReadability.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,7 +59,7 @@
 		891538B81D248BCB00BAB813 = {
 			isa = PBXGroup;
 			children = (
-				891538F51D29DD1B00BAB813 /* SwiftReadability.framework */,
+				FA6F2C191EC28F910048F259 /* SwiftReadability.framework */,
 				891538C31D248BCB00BAB813 /* SwiftReadabilityExample */,
 				891538C21D248BCB00BAB813 /* Products */,
 				891538EC1D248C6B00BAB813 /* Frameworks */,
