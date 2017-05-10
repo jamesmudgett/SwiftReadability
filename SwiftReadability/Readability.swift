@@ -14,7 +14,7 @@ public class Readability: NSObject, WKNavigationDelegate {
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
     private var hasRenderedReadabilityHTML = false
     
-    init(url: URL, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public init(url: URL, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
 
         self.completionHandler = completionHandler
         
