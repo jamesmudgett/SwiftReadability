@@ -106,9 +106,6 @@ public class Readability: NSObject, WKNavigationDelegate {
             }
         } else {
             updateImageMargins() { [weak self] (html: String?, error: Error?) in
-                if let f = html {
-                    print(f)
-                }
                 self?.completionHandler(html, error)
             }
         }
