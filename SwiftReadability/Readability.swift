@@ -9,6 +9,10 @@
 import Foundation
 import WebKit
 
+public enum ReadabilityError: Error {
+    case unableToParseScriptResult(rawResult: String?)
+}
+
 public class Readability: NSObject, WKNavigationDelegate {
     private let webView: WKWebView
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
@@ -66,19 +70,21 @@ public class Readability: NSObject, WKNavigationDelegate {
         }
         
         webView.evaluateJavaScript(readabilityInitializationJS) { [weak self] (result, error) in
+            let parseError = ReadabilityError.unableToParseScriptResult(rawResult: result as? String)
+            
             guard let resultData = (result as? String)?.data(using: .utf8) else {
                 self?.completionHandler(nil, error)
                 return
             }
-            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String], let content = jsonResult["content"] else {
-                self?.completionHandler(nil, nil)
+            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String?], let contentOptional = jsonResult["content"], let content = contentOptional, let titleOptional = jsonResult["title"], let bylineOptional = jsonResult["byline"] else {
+                self?.completionHandler(nil, parseError)
                 return
             }
             guard let html = self?.renderHTML(
-                readabilityTitle: jsonResult["title"],
-                readabilityByline: jsonResult["byline"],
+                readabilityTitle: titleOptional,
+                readabilityByline: bylineOptional,
                 readabilityContent: content) else {
-                    self?.completionHandler(nil, nil)
+                    self?.completionHandler(nil, parseError)
                     return
                 }
             completionHandler(html, nil)
@@ -121,6 +127,10 @@ public class Readability: NSObject, WKNavigationDelegate {
                 self?.completionHandler(html, error)
             }
         }
+    }
+    
+    public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        completionHandler(nil, error)
     }
 }
 
