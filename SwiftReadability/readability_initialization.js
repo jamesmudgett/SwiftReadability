@@ -10,4 +10,8 @@ var uri = {
 };
 var article = new Readability(uri, document).parse();
 
-article.content;
+JSON.stringify({
+    title: article.title,
+    byline: article.byline,
+    content: article.content,
+});

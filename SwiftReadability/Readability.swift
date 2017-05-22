@@ -35,7 +35,7 @@ public class Readability: NSObject, WKNavigationDelegate {
         webView.configuration.userContentController.addUserScript(script)
     }
     
-    private func renderHTML(readabilityContent: String) -> String {
+    private func renderHTML(readabilityTitle: String?, readabilityByline: String?, readabilityContent: String) -> String {
         do {
             let template = try loadFile(name: "Reader.template", type: "html")
             
@@ -45,6 +45,8 @@ public class Readability: NSObject, WKNavigationDelegate {
             
             let html = template
                 .replacingOccurrences(of: "##CSS##", with: css)
+                .replacingOccurrences(of: "##TITLE##", with: readabilityTitle ?? "")
+                .replacingOccurrences(of: "##BYLINE##", with: readabilityByline ?? "")
                 .replacingOccurrences(of: "##CONTENT##", with: readabilityContent)
             
             return html
@@ -64,11 +66,21 @@ public class Readability: NSObject, WKNavigationDelegate {
         }
         
         webView.evaluateJavaScript(readabilityInitializationJS) { [weak self] (result, error) in
-            guard let result = result as? String else {
+            guard let resultData = (result as? String)?.data(using: .utf8) else {
                 self?.completionHandler(nil, error)
                 return
             }
-            guard let html = self?.renderHTML(readabilityContent: result) else { return }
+            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String], let content = jsonResult["content"] else {
+                self?.completionHandler(nil, nil)
+                return
+            }
+            guard let html = self?.renderHTML(
+                readabilityTitle: jsonResult["title"],
+                readabilityByline: jsonResult["byline"],
+                readabilityContent: content) else {
+                    self?.completionHandler(nil, nil)
+                    return
+                }
             completionHandler(html, nil)
         }
     }

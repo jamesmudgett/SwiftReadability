@@ -3,5 +3,7 @@
 #reader-content {
     display: block;
 }
-
+#reader-header {
+    display: block;
+}
 /* TODO: Fonts! */
