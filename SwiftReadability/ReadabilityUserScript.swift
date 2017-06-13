@@ -10,14 +10,17 @@ import Foundation
 import WebKit
 
 class ReadabilityUserScript: WKUserScript {
-    convenience override init() {
+    convenience init(scriptInjectionTime: WKUserScriptInjectionTime) {
         let js: String
         do {
-            js = try loadFile(name: "Readability", type: "js")
+            js = (
+                try loadFile(name: "Readability", type: "js")
+                + "\nwindow.webkit.messageHandlers.readabilityJavascriptLoaded.postMessage({})"
+            )
         } catch {
             fatalError("Couldn't load Readability.js")
         }
         
-        self.init(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        self.init(source: js, injectionTime: scriptInjectionTime, forMainFrameOnly: true)
     }
 }

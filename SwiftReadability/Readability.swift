@@ -13,14 +13,21 @@ public enum ReadabilityError: Error {
     case unableToParseScriptResult(rawResult: String?)
 }
 
-public class Readability: NSObject, WKNavigationDelegate {
+public enum ReadabilityConversionTime {
+    case atDocumentStart
+    case atDocumentEnd
+}
+
+public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private let webView: WKWebView
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
     private var hasRenderedReadabilityHTML = false
+    private let conversionTime: ReadabilityConversionTime
     
-    public init(url: URL, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
 
         self.completionHandler = completionHandler
+        self.conversionTime = conversionTime
         
         webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
@@ -30,12 +37,13 @@ public class Readability: NSObject, WKNavigationDelegate {
         webView.navigationDelegate = self
         
         addReadabilityUserScript()
+        
         let request = URLRequest(url: url)
         webView.load(request)
     }
     
     private func addReadabilityUserScript() {
-        let script = ReadabilityUserScript()
+        let script = ReadabilityUserScript(scriptInjectionTime: conversionTime == .atDocumentStart ? WKUserScriptInjectionTime.atDocumentStart : WKUserScriptInjectionTime.atDocumentEnd)
         webView.configuration.userContentController.addUserScript(script)
     }
     
@@ -108,20 +116,35 @@ public class Readability: NSObject, WKNavigationDelegate {
         }
     }
     
-    // ***************************
+    private func rawPageFinishedLoading() {
+        initializeReadability() { [weak self] (html: String?, error: Error?) in
+            self?.hasRenderedReadabilityHTML = true
+            guard let html = html else {
+                self?.completionHandler(nil, error)
+                return
+            }
+            _ = self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
+        }
+    }
+    
+    // MARK: WKScriptMessageHandler delegate
+    
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "readabilityJavascriptLoaded" else {
+            print("Unexpected script message name \(message.name)")
+            return
+        }
+        
+        if conversionTime == .atDocumentStart {
+            rawPageFinishedLoading()
+        }
+    }
+    
     //  MARK: WKNavigationDelegate
-    // ***************************
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         if !hasRenderedReadabilityHTML {
-            initializeReadability() { [weak self] (html: String?, error: Error?) in
-                self?.hasRenderedReadabilityHTML = true
-                guard let html = html else {
-                    self?.completionHandler(nil, error)
-                    return
-                }
-                _ = self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
-            }
+            rawPageFinishedLoading()
         } else {
             updateImageMargins() { [weak self] (html: String?, error: Error?) in
                 self?.completionHandler(html, error)
