@@ -14,7 +14,6 @@
 		89C9AFE41E1DF29200CDC566 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 891538D91D248BFF00BAB813 /* Assets.xcassets */; };
 		89C9AFE51E1DF29500CDC566 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 891538DA1D248BFF00BAB813 /* LaunchScreen.storyboard */; };
 		89C9AFE61E1DF29900CDC566 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 891538DC1D248BFF00BAB813 /* Main.storyboard */; };
-		89C9AFE71E1DF29C00CDC566 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 891538DE1D248BFF00BAB813 /* Info.plist */; };
 		89C9AFE81E1DF29F00CDC566 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891538DF1D248BFF00BAB813 /* ViewController.swift */; };
 		89DDEBA71D18C5ED0043F6AD /* ReadabilityViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DDEBA61D18C5ED0043F6AD /* ReadabilityViewController.swift */; };
 		89DDEBAA1D18C63B0043F6AD /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 89DDEBA91D18C63B0043F6AD /* UIKit.framework */; };
@@ -292,7 +291,6 @@
 				89C9AFE41E1DF29200CDC566 /* Assets.xcassets in Resources */,
 				89C9AFE61E1DF29900CDC566 /* Main.storyboard in Resources */,
 				89C9AFE51E1DF29500CDC566 /* LaunchScreen.storyboard in Resources */,
-				89C9AFE71E1DF29C00CDC566 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -492,7 +490,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				DEVELOPMENT_TEAM = U88Q589DZB;
-				INFOPLIST_FILE = SwiftReadabilityExample/Info.plist;
+				INFOPLIST_FILE = SwiftReadabilityExample/SwiftReadabilityExample/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
@@ -508,7 +506,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				DEVELOPMENT_TEAM = U88Q589DZB;
-				INFOPLIST_FILE = SwiftReadabilityExample/Info.plist;
+				INFOPLIST_FILE = SwiftReadabilityExample/SwiftReadabilityExample/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
