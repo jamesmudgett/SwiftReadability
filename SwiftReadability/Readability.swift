@@ -8,9 +8,11 @@
 
 import Foundation
 import WebKit
+import SwiftSoup
 
 public enum ReadabilityError: Error {
     case unableToParseScriptResult(rawResult: String?)
+    case loadingFailure
 }
 
 public enum ReadabilityConversionTime {
@@ -18,16 +20,21 @@ public enum ReadabilityConversionTime {
     case atDocumentEnd
 }
 
+private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "script", "audio", "iframe"]
+private let tagsWithExternalSubresourcesViaHref = ["link", "a", "style"]
+
 public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private let webView: WKWebView
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
     private var hasRenderedReadabilityHTML = false
     private let conversionTime: ReadabilityConversionTime
+    private let suppressSubresourceLoadingDuringConversion: Bool
     
-    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: Bool = false, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
 
         self.completionHandler = completionHandler
         self.conversionTime = conversionTime
+        self.suppressSubresourceLoadingDuringConversion = suppressSubresourceLoadingDuringConversion
         
         webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
@@ -38,13 +45,94 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         addReadabilityUserScript()
         
-        let request = URLRequest(url: url)
-        webView.load(request)
+        if suppressSubresourceLoadingDuringConversion {
+            downloadHTMLWithoutSubresources(url: url) { [weak self] (html, error) in
+                guard let html = html, error == nil else {
+                    completionHandler(nil, ReadabilityError.loadingFailure)
+                    return
+                }
+                self?.webView.loadHTMLString(html, baseURL: url)
+            }
+        } else {
+            let request = URLRequest(url: url)
+            webView.load(request)
+        }
     }
     
     private func addReadabilityUserScript() {
         let script = ReadabilityUserScript(scriptInjectionTime: conversionTime == .atDocumentStart ? WKUserScriptInjectionTime.atDocumentStart : WKUserScriptInjectionTime.atDocumentEnd)
         webView.configuration.userContentController.addUserScript(script)
+    }
+    
+    private func downloadHTMLWithoutSubresources(url: URL, callbackHandler: @escaping (String?, Error?) -> Void) {
+        let session = URLSession(configuration: .default)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let task = session.dataTask(with: request) { [weak self] (data, response, error) in
+            guard let data = data, error == nil else {
+                callbackHandler(nil, error)
+                return
+            }
+            guard let html = String(data: data, encoding: .utf8), let transformedHtml = self?.suppressSubresources(html: html) else {
+                callbackHandler(nil, ReadabilityError.unableToParseScriptResult(rawResult: nil))
+                return
+            }
+            callbackHandler(transformedHtml, nil)
+        }
+        task.resume()
+    }
+    
+    private func suppressSubresources(html: String) -> String? {
+        guard let doc = try? SwiftSoup.parse(html) else {
+            print("Failed to parse HTML in order to strip subresources.")
+            return nil
+        }
+        
+        do {
+            for tagName in tagsWithExternalSubresourcesViaSrc {
+                for tag in try doc.getElementsByTag(tagName) {
+                    try tag.attr("data-swift-readability-src", tag.attr("src"))
+                    try tag.removeAttr("src")
+                }
+            }
+            for tagName in tagsWithExternalSubresourcesViaHref {
+                for tag in try doc.getElementsByTag(tagName) {
+                    try tag.attr("data-swift-readability-href", tag.attr("href"))
+                    try tag.removeAttr("href")
+                }
+            }
+            return try doc.outerHtml()
+        } catch {
+            print("Failed to reconstitute HTML in order to strip subresources.")
+            return nil
+        }
+    }
+    
+    private func restoreSubresources(html: String) -> String? {
+        guard let doc = try? SwiftSoup.parse(html) else {
+            print("Failed to parse HTML in order to restore subresources.")
+            return nil
+        }
+        
+        do {
+            for tagName in tagsWithExternalSubresourcesViaSrc {
+                for tag in try doc.getElementsByTag(tagName) {
+                    try tag.attr("src", tag.attr("data-swift-readability-src"))
+                    try tag.removeAttr("data-swift-readability-src")
+                }
+            }
+            for tagName in tagsWithExternalSubresourcesViaHref {
+                for tag in try doc.getElementsByTag(tagName) {
+                    try tag.attr("href", tag.attr("data-swift-readability-href"))
+                    try tag.removeAttr("data-swift-readability-href")
+                }
+            }
+            return try doc.outerHtml()
+        } catch {
+            print("Failed to reconstitute HTML in order to restore subresources.")
+            return nil
+        }
     }
     
     private func renderHTML(readabilityTitle: String?, readabilityByline: String?, readabilityContent: String) -> String {
@@ -84,10 +172,19 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 self?.completionHandler(nil, error)
                 return
             }
-            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String?], let contentOptional = jsonResult["content"], let content = contentOptional, let titleOptional = jsonResult["title"], let bylineOptional = jsonResult["byline"] else {
+            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String?], let contentOptional = jsonResult["content"], var content = contentOptional, let titleOptional = jsonResult["title"], let bylineOptional = jsonResult["byline"] else {
                 self?.completionHandler(nil, parseError)
                 return
             }
+            
+            if self?.suppressSubresourceLoadingDuringConversion ?? false {
+                guard let restoredSubresourcesContent = self?.restoreSubresources(html: content) else {
+                    self?.completionHandler(nil, ReadabilityError.unableToParseScriptResult(rawResult: nil))
+                    return
+                }
+                content = restoredSubresourcesContent
+            }
+            
             guard let html = self?.renderHTML(
                 readabilityTitle: titleOptional,
                 readabilityByline: bylineOptional,
