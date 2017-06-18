@@ -28,12 +28,14 @@ public enum ReadabilitySubresourceSuppressionType {
     case imagesOnly
 }
 
-private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "script", "audio", "iframe"]
-private let tagsWithExternalSubresourcesViaHref = ["link", "a", "style"]
+private let tagsWithSubresourcesToStrip = ["script", "style"]
+private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "audio", "iframe"]
+private let tagsWithExternalSubresourcesViaHref = ["link", "a"]
 
 public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private let webView: WKWebView
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
+    private var isRenderingReadabilityHTML = false
     private var hasRenderedReadabilityHTML = false
     private let conversionTime: ReadabilityConversionTime
     private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
@@ -112,19 +114,33 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
         
         do {
+            if suppressSubresourceLoadingDuringConversion == .all || suppressSubresourceLoadingDuringConversion == .allExceptScripts {
+                let toStrip = suppressSubresourceLoadingDuringConversion == .allExceptScripts ? tagsWithSubresourcesToStrip.filter { $0 != "script" } : tagsWithSubresourcesToStrip
+                for tagName in toStrip {
+                    for tag in try doc.getElementsByTag(tagName) {
+                        try tag.remove()
+                    }
+                }
+            }
+            
             let srcTags: [String]
             switch suppressSubresourceLoadingDuringConversion {
-            case .allExceptScripts: srcTags = tagsWithExternalSubresourcesViaSrc.filter { $0 != "script" }
             case .imagesOnly: srcTags = ["img"]
             default: srcTags = tagsWithExternalSubresourcesViaSrc
             }
             for tagName in srcTags {
                 for tag in try doc.getElementsByTag(tagName) {
-                    try tag.attr("data-swift-readability-src", tag.attr("src"))
-                    try tag.removeAttr("src")
+                    if try tag.attr("src") != "" {
+                        try tag.attr("data-swift-readability-src", tag.attr("src"))
+                        if tagName == "img" {
+                            try tag.attr("src", "")
+                        } else {
+                            try tag.removeAttr("src")
+                        }
+                    }
                 }
             }
-            if suppressSubresourceLoadingDuringConversion == .all {
+            if ![ReadabilitySubresourceSuppressionType.imagesOnly, ReadabilitySubresourceSuppressionType.none].contains(suppressSubresourceLoadingDuringConversion) {
                 for tagName in tagsWithExternalSubresourcesViaHref {
                     for tag in try doc.getElementsByTag(tagName) {
                         try tag.attr("data-swift-readability-href", tag.attr("href"))
@@ -244,13 +260,16 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     }
     
     private func rawPageFinishedLoading() {
+        isRenderingReadabilityHTML = true
         initializeReadability() { [weak self] (html: String?, error: Error?) in
+            self?.isRenderingReadabilityHTML = false
             self?.hasRenderedReadabilityHTML = true
             guard let html = html else {
                 self?.completionHandler(nil, error)
                 return
             }
             DispatchQueue.main.async { [weak self] in
+                self?.webView.configuration.userContentController.removeAllUserScripts()
                 self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
             }
         }
@@ -264,7 +283,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             return
         }
         
-        if hasRenderedReadabilityHTML {
+        if isRenderingReadabilityHTML || hasRenderedReadabilityHTML {
             return
         }
         
@@ -278,7 +297,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     //  MARK: WKNavigationDelegate
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if !hasRenderedReadabilityHTML {
+        if !(isRenderingReadabilityHTML || hasRenderedReadabilityHTML) {
             rawPageFinishedLoading()
         } else {
             updateImageMargins() { [weak self] (html: String?, error: Error?) in

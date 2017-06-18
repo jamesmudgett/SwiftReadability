@@ -19,8 +19,11 @@ open class ReadabilityViewController: UIViewController {
     }
     
     public func loadURL(url: URL) {
-        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .none) { [weak self] (content, error) in
-            guard let content = content else { return }
+        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all) { [weak self] (content, error) in
+            guard let content = content else {
+                print(error?.localizedDescription)
+                return
+            }
             
             DispatchQueue.main.async { [weak self] in
                 _ = self?.webView.loadHTMLString(content, baseURL: url)
