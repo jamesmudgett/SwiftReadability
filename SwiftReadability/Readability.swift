@@ -51,7 +51,9 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                     completionHandler(nil, ReadabilityError.loadingFailure)
                     return
                 }
-                self?.webView.loadHTMLString(html, baseURL: url)
+                DispatchQueue.main.async { [weak self] in
+                    self?.webView.loadHTMLString(html, baseURL: url)
+                }
             }
         } else {
             let request = URLRequest(url: url)
@@ -220,7 +222,9 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 self?.completionHandler(nil, error)
                 return
             }
-            _ = self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
+            DispatchQueue.main.async { [weak self] in
+                self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
+            }
         }
     }
     

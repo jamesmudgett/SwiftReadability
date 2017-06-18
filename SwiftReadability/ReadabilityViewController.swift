@@ -19,12 +19,13 @@ open class ReadabilityViewController: UIViewController {
     }
     
     public func loadURL(url: URL) {
-        inProgressReadability = Readability(url: url) { [weak self] (content, error) in
+        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: true) { [weak self] (content, error) in
             guard let content = content else { return }
             
-            _ = self?.webView.loadHTMLString(content, baseURL: url)
-            
-            self?.inProgressReadability = nil
+            DispatchQueue.main.async { [weak self] in
+                _ = self?.webView.loadHTMLString(content, baseURL: url)
+                self?.inProgressReadability = nil
+            }
         }
     }
 }
