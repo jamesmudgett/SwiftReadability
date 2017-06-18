@@ -24,6 +24,7 @@ public enum ReadabilityConversionTime {
 public enum ReadabilitySubresourceSuppressionType {
     case none
     case all
+    case allExceptScripts
     case imagesOnly
 }
 
@@ -111,7 +112,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
         
         do {
-            for tagName in (suppressSubresourceLoadingDuringConversion == .imagesOnly ? ["img"] : tagsWithExternalSubresourcesViaSrc) {
+            let srcTags: [String]
+            switch suppressSubresourceLoadingDuringConversion {
+            case .allExceptScripts: srcTags = tagsWithExternalSubresourcesViaSrc.filter { $0 != "script" }
+            case .imagesOnly: srcTags = ["img"]
+            default: srcTags = tagsWithExternalSubresourcesViaSrc
+            }
+            for tagName in srcTags {
                 for tag in try doc.getElementsByTag(tagName) {
                     try tag.attr("data-swift-readability-src", tag.attr("src"))
                     try tag.removeAttr("src")
