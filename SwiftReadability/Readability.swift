@@ -21,6 +21,12 @@ public enum ReadabilityConversionTime {
     case atNavigationFinished
 }
 
+public enum ReadabilitySubresourceSuppressionType {
+    case none
+    case all
+    case imagesOnly
+}
+
 private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "script", "audio", "iframe"]
 private let tagsWithExternalSubresourcesViaHref = ["link", "a", "style"]
 
@@ -29,10 +35,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
     private var hasRenderedReadabilityHTML = false
     private let conversionTime: ReadabilityConversionTime
-    private let suppressSubresourceLoadingDuringConversion: Bool
+    private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
     private var allowNavigationFailures = 0
     
-    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: Bool = false, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         
         self.completionHandler = completionHandler
         self.conversionTime = conversionTime
@@ -48,7 +54,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         addReadabilityUserScript()
         
-        if suppressSubresourceLoadingDuringConversion {
+        if suppressSubresourceLoadingDuringConversion != .none {
             downloadHTMLWithoutSubresources(url: url) { [weak self] (html, error) in
                 guard let html = html, error == nil else {
                     completionHandler(nil, ReadabilityError.loadingFailure)
@@ -105,16 +111,18 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
         
         do {
-            for tagName in tagsWithExternalSubresourcesViaSrc {
+            for tagName in (suppressSubresourceLoadingDuringConversion == .imagesOnly ? ["img"] : tagsWithExternalSubresourcesViaSrc) {
                 for tag in try doc.getElementsByTag(tagName) {
                     try tag.attr("data-swift-readability-src", tag.attr("src"))
                     try tag.removeAttr("src")
                 }
             }
-            for tagName in tagsWithExternalSubresourcesViaHref {
-                for tag in try doc.getElementsByTag(tagName) {
-                    try tag.attr("data-swift-readability-href", tag.attr("href"))
-                    try tag.removeAttr("href")
+            if suppressSubresourceLoadingDuringConversion == .all {
+                for tagName in tagsWithExternalSubresourcesViaHref {
+                    for tag in try doc.getElementsByTag(tagName) {
+                        try tag.attr("data-swift-readability-href", tag.attr("href"))
+                        try tag.removeAttr("href")
+                    }
                 }
             }
             return try doc.outerHtml()
@@ -192,7 +200,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 return
             }
             
-            if self?.suppressSubresourceLoadingDuringConversion ?? false {
+            if (self?.suppressSubresourceLoadingDuringConversion ?? .none) != .none {
                 guard let restoredSubresourcesContent = self?.restoreSubresources(html: content) else {
                     self?.completionHandler(nil, ReadabilityError.unableToParseScriptResult(rawResult: nil))
                     return

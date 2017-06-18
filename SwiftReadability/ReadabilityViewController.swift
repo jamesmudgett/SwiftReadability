@@ -19,7 +19,7 @@ open class ReadabilityViewController: UIViewController {
     }
     
     public func loadURL(url: URL) {
-        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: false) { [weak self] (content, error) in
+        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .none) { [weak self] (content, error) in
             guard let content = content else { return }
             
             DispatchQueue.main.async { [weak self] in
