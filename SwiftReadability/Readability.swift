@@ -75,11 +75,21 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         request.httpMethod = "GET"
         request.timeoutInterval = 30
         let task = session.dataTask(with: request) { [weak self] (data, response, error) in
-            guard let data = data, error == nil else {
+            guard var data = data, error == nil else {
                 callbackHandler(nil, error)
                 return
             }
-            guard let html = String(data: data, encoding: .utf8), let transformedHtml = self?.suppressSubresources(html: html) else {
+            
+            var html: String? = String(data: data, encoding: .utf8)
+            if html == nil {
+                // https://stackoverflow.com/a/44611946/89373
+                data.append(0)
+                let s = data.withUnsafeBytes { (p: UnsafePointer<CChar>) in String(cString: p) }
+                let clean = s.replacingOccurrences(of: "\u{FFFD}", with: "")
+                html = clean
+            }
+            
+            guard let cleanedHtml = html, let transformedHtml = self?.suppressSubresources(html: cleanedHtml) else {
                 callbackHandler(nil, ReadabilityError.decodingFailure)
                 return
             }
