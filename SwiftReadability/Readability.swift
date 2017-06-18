@@ -30,6 +30,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private var hasRenderedReadabilityHTML = false
     private let conversionTime: ReadabilityConversionTime
     private let suppressSubresourceLoadingDuringConversion: Bool
+    private var allowNavigationFailures = 0
     
     public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: Bool = false, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         
@@ -195,7 +196,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 readabilityContent: content) else {
                     self?.completionHandler(nil, parseError)
                     return
-                }
+            }
             completionHandler(html, nil)
         }
     }
@@ -243,6 +244,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
         
         if conversionTime == .atDocumentEnd {
+            allowNavigationFailures += 1
             webView.stopLoading()
             rawPageFinishedLoading()
         }
@@ -261,8 +263,11 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     }
     
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        completionHandler(nil, error)
+        if allowNavigationFailures > 0 {
+            allowNavigationFailures -= 1
+        } else {
+            completionHandler(nil, error)
+        }
     }
 }
-
 
