@@ -12,12 +12,13 @@ import SwiftSoup
 
 public enum ReadabilityError: Error {
     case unableToParseScriptResult(rawResult: String?)
+    case decodingFailure
     case loadingFailure
 }
 
 public enum ReadabilityConversionTime {
-    case atDocumentStart
     case atDocumentEnd
+    case atNavigationFinished
 }
 
 private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "script", "audio", "iframe"]
@@ -31,7 +32,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let suppressSubresourceLoadingDuringConversion: Bool
     
     public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: Bool = false, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
-
+        
         self.completionHandler = completionHandler
         self.conversionTime = conversionTime
         self.suppressSubresourceLoadingDuringConversion = suppressSubresourceLoadingDuringConversion
@@ -42,6 +43,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         webView.configuration.suppressesIncrementalRendering = true
         webView.navigationDelegate = self
+        webView.configuration.userContentController.add(self, name: "readabilityJavascriptLoaded")
         
         addReadabilityUserScript()
         
@@ -62,7 +64,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     }
     
     private func addReadabilityUserScript() {
-        let script = ReadabilityUserScript(scriptInjectionTime: conversionTime == .atDocumentStart ? WKUserScriptInjectionTime.atDocumentStart : WKUserScriptInjectionTime.atDocumentEnd)
+        let script = ReadabilityUserScript(scriptInjectionTime: .atDocumentEnd)
         webView.configuration.userContentController.addUserScript(script)
     }
     
@@ -70,14 +72,14 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         let session = URLSession(configuration: .default)
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        
+        request.timeoutInterval = 30
         let task = session.dataTask(with: request) { [weak self] (data, response, error) in
             guard let data = data, error == nil else {
                 callbackHandler(nil, error)
                 return
             }
             guard let html = String(data: data, encoding: .utf8), let transformedHtml = self?.suppressSubresources(html: html) else {
-                callbackHandler(nil, ReadabilityError.unableToParseScriptResult(rawResult: nil))
+                callbackHandler(nil, ReadabilityError.decodingFailure)
                 return
             }
             callbackHandler(transformedHtml, nil)
@@ -236,7 +238,12 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             return
         }
         
-        if conversionTime == .atDocumentStart {
+        if hasRenderedReadabilityHTML {
+            return
+        }
+        
+        if conversionTime == .atDocumentEnd {
+            webView.stopLoading()
             rawPageFinishedLoading()
         }
     }

@@ -279,11 +279,12 @@
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = 8Y769YTXHF;
 						DevelopmentTeamName = "Chloe Horgan";
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 0900;
 						ProvisioningStyle = Automatic;
 					};
 					FA4B8FD91EF60D83005AB3C8 = {
 						CreatedOnToolsVersion = 9.0;
+						LastSwiftMigration = 0900;
 					};
 					FA4B8FEC1EF60D83005AB3C8 = {
 						CreatedOnToolsVersion = 9.0;
@@ -563,6 +564,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -579,6 +581,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftReadability/SwiftReadabilityExample-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -590,6 +594,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -606,6 +611,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftReadability/SwiftReadabilityExample-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -687,6 +693,7 @@
 				FA4B8FF61EF60D83005AB3C8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		FA4B8FF71EF60D83005AB3C8 /* Build configuration list for PBXNativeTarget "SwiftReadabilityExampleUITests" */ = {
 			isa = XCConfigurationList;
@@ -695,6 +702,7 @@
 				FA4B8FF91EF60D83005AB3C8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
