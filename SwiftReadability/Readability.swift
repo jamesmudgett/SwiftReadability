@@ -89,7 +89,27 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 return
             }
             
-            var html: String? = String(data: data, encoding: .utf8)
+            guard let asciiHtml = String(data: data, encoding: .ascii), let doc = try? SwiftSoup.parse(asciiHtml) else {
+                print("Failed to parse HTML in order to detect charset.")
+                callbackHandler(nil, ReadabilityError.decodingFailure)
+                return
+            }
+            var encoding = String.Encoding.utf8
+            func updateEncoding(charset: String) {
+                switch charset.lowercased() {
+                case "shift_jis": encoding = String.Encoding.shiftJIS
+                case "euc-jp": encoding = String.Encoding.japaneseEUC
+                case "iso-2022-jp": encoding = String.Encoding.iso2022JP
+                default: break
+                }
+            }
+            if let contentType = try? doc.select("meta[http-equiv=content-type]").first()?.attr("content"), let charset = contentType?.lowercased().components(separatedBy: "charset=").last {
+                updateEncoding(charset: charset)
+            }
+            if let charsetOptional = try? doc.select("meta[charset]").first()?.attr("charset"), let charset = charsetOptional {
+                updateEncoding(charset: charset)
+            }
+            var html: String? = String(data: data, encoding: encoding)
             if html == nil {
                 // https://stackoverflow.com/a/44611946/89373
                 data.append(0)
@@ -98,7 +118,11 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 html = clean
             }
             
-            guard let cleanedHtml = html, let transformedHtml = self?.suppressSubresources(html: cleanedHtml) else {
+            guard let cleanedHtml = html else {
+                callbackHandler(nil, ReadabilityError.decodingFailure)
+                return
+            }
+            guard let transformedHtml = self?.suppressSubresources(html: cleanedHtml) else {
                 callbackHandler(nil, ReadabilityError.decodingFailure)
                 return
             }
@@ -112,7 +136,6 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             print("Failed to parse HTML in order to strip subresources.")
             return nil
         }
-        
         do {
             if suppressSubresourceLoadingDuringConversion == .all || suppressSubresourceLoadingDuringConversion == .allExceptScripts {
                 let toStrip = suppressSubresourceLoadingDuringConversion == .allExceptScripts ? tagsWithSubresourcesToStrip.filter { $0 != "script" } : tagsWithSubresourcesToStrip
