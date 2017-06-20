@@ -43,11 +43,18 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     
     public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         
-        self.completionHandler = completionHandler
+        let webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
+        
+        func completionHandlerWrapper(_ content: String?, _ error: Error?) {
+            // See: https://stackoverflow.com/a/32443423/89373
+            webView.configuration.userContentController.removeScriptMessageHandler(forName: "readabilityJavascriptLoaded")
+            completionHandler(content, error)
+        }
+        
+        self.completionHandler = completionHandlerWrapper
         self.conversionTime = conversionTime
         self.suppressSubresourceLoadingDuringConversion = suppressSubresourceLoadingDuringConversion
-        
-        webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
+        self.webView = webView
         
         super.init()
         
@@ -322,7 +329,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         if !(isRenderingReadabilityHTML || hasRenderedReadabilityHTML) {
             rawPageFinishedLoading()
-        } else {
+        } else if !isRenderingReadabilityHTML {
             updateImageMargins() { [weak self] (html: String?, error: Error?) in
                 self?.completionHandler(html, error)
             }
