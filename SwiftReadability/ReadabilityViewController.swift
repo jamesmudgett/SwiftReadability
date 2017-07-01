@@ -18,8 +18,8 @@ open class ReadabilityViewController: UIViewController {
         view = webView
     }
     
-    public func loadURL(url: URL) {
-        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all) { [weak self] (content, error) in
+    private func makeReadabilityCallback(url: URL) -> ((String?, Error?) -> Void) {
+        return { (content: String?, error: Error?) in
             guard let content = content else {
                 print(error?.localizedDescription)
                 return
@@ -30,5 +30,13 @@ open class ReadabilityViewController: UIViewController {
                 self?.inProgressReadability = nil
             }
         }
+    }
+    
+    public func loadURL(url: URL) {
+        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all, completionHandler: makeReadabilityCallback(url: url))
+    }
+    
+    public func loadHTML(html: String, withBaseURL url: URL) {
+        inProgressReadability = Readability(html: html, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all, completionHandler: makeReadabilityCallback(url: url))
     }
 }
