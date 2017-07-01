@@ -19,16 +19,19 @@ class ViewController: ReadabilityViewController {
 //    let articleURL = URL(string: "http://hukumusume.com/douwa/pc/aesop/01/01.htm")
     
 //    let articleURL = URL(string: "http://www.hiraganatimes.com/ja/past-articles/food/4345/")
+//    let articleURL = URL(string: "https://www.businessinsider.jp/post-34527")
+//    let articleURL = URL(string: "http://www.huffingtonpost.jp/2017/07/01/earthquake-kumamoto0702_n_17358712.html?utm_hp_ref=japan&ir=Japan")
     let articleURL = URL(string: "https://github.com/blog/2195-the-shape-of-open-source")
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         guard let articleURL = articleURL else { return }
         
-//        loadURL(url: articleURL)
+        loadURL(url: articleURL)
         
-        let html = "<p><img class=\"aligncenter size-full wp-image-4353\" src=\"http://www.hiraganatimes.com/wp/wp-content/uploads/2016/06/201508-4.jpg\" alt=\"201508-4\" /></p>\n<p>明治時代（19～20世紀）を中心とした貴重な建造物を集めた野外博物館。今年オープンから50年を迎えた。著名なアメリカ人建築家、フランク・ロイド・ライトが建てた旧帝国ホテルでは軽食が楽しめる。蒸気機関車やレトロな京都市電、バスが毎日運転を行い、広大な敷地内の移動に利用できる。着物や袴姿での記念撮影体験や、季節ごとのイベントも数多く開催。映像作品のロケに使われることも多い。</p>\n<ul>\n<li>交通：名鉄犬山線犬山駅から路線バス明治村行き20分、下車すぐ。</li>\n<li>営業時間：午前9時30分～午後5時（季節によって時間帯の変更あり）</li>\n<li>休村日：8月4日、18日、25日、12月31日、12～2月の毎週月曜日。1月に数日間メンテナンス休日あり。</li>\n<li>入村料：大人（18歳以上）1,700円、乗り物一日券付きは2,700円</li>\n</ul>\n<p><a href=\"http://www.meijimura.com\" target=\"_blank\">博物館 明治村</a></p>\n"
-        loadHTML(html: html, withBaseURL: articleURL)
+//        let html = "<p><img class=\"aligncenter size-full wp-image-4353\" src=\"http://www.hiraganatimes.com/wp/wp-content/uploads/2016/06/201508-4.jpg\" alt=\"201508-4\" /></p>\n<p>明治時代（19～20世紀）を中心とした貴重な建造物を集めた野外博物館。今年オープンから50年を迎えた。著名なアメリカ人建築家、フランク・ロイド・ライトが建てた旧帝国ホテルでは軽食が楽しめる。蒸気機関車やレトロな京都市電、バスが毎日運転を行い、広大な敷地内の移動に利用できる。着物や袴姿での記念撮影体験や、季節ごとのイベントも数多く開催。映像作品のロケに使われることも多い。</p>\n<ul>\n<li>交通：名鉄犬山線犬山駅から路線バス明治村行き20分、下車すぐ。</li>\n<li>営業時間：午前9時30分～午後5時（季節によって時間帯の変更あり）</li>\n<li>休村日：8月4日、18日、25日、12月31日、12～2月の毎週月曜日。1月に数日間メンテナンス休日あり。</li>\n<li>入村料：大人（18歳以上）1,700円、乗り物一日券付きは2,700円</li>\n</ul>\n<p><a href=\"http://www.meijimura.com\" target=\"_blank\">博物館 明治村</a></p>\n"
+//        loadHTML(html: html, withBaseURL: articleURL)
     }
 }
