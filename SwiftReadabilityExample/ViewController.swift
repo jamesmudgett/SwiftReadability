@@ -17,6 +17,8 @@ class ViewController: ReadabilityViewController {
 //    let articleURL = URL(string: "http://www.huffingtonpost.jp/techcrunch-japan/amazon-is-gobbling-whole-foods-for-a-reported-13-7-billion_b_17171132.html?utm_hp_ref=japan&ir=Japan")
 //    let articleURL = URL(string: "http://natgeo.nikkeibp.co.jp/atcl/news/16/c/061500045/?rss")
 //    let articleURL = URL(string: "http://hukumusume.com/douwa/pc/aesop/01/01.htm")
+    
+//    let articleURL = URL(string: "http://www.hiraganatimes.com/ja/past-articles/food/4345/")
     let articleURL = URL(string: "https://github.com/blog/2195-the-shape-of-open-source")
     
     override func viewDidLoad() {

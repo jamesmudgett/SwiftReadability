@@ -41,8 +41,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
     private var allowNavigationFailures = 0
     
-    public init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
-        
+    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         let webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
         func completionHandlerWrapper(_ content: String?, _ error: Error?) {
@@ -63,6 +62,11 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         webView.configuration.userContentController.add(self, name: "readabilityJavascriptLoaded")
         
         addReadabilityUserScript()
+    }
+    
+    public convenience init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+        
+        self.init(conversionTime: conversionTime, suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion, completionHandler: completionHandler)
         
         if suppressSubresourceLoadingDuringConversion != .none {
             downloadHTMLWithoutSubresources(url: url) { [weak self] (html, error) in
@@ -77,6 +81,23 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         } else {
             let request = URLRequest(url: url)
             webView.load(request)
+        }
+    }
+    
+    public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+        
+        self.init(conversionTime: conversionTime, suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion, completionHandler: completionHandler)
+        
+        var htmlToLoad = html
+        if suppressSubresourceLoadingDuringConversion != .none {
+            guard let transformedHtml = suppressSubresources(html: html) else {
+                completionHandler(nil, ReadabilityError.loadingFailure)
+                return
+            }
+            htmlToLoad = transformedHtml
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.webView.loadHTMLString(htmlToLoad, baseURL: baseUrl)
         }
     }
     
