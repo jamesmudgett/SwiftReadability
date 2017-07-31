@@ -140,6 +140,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         htmlDownloadCompletionHandler = callbackHandler
         
+        if let progressCallback = progressCallback {
+            progressCallback(0.0)
+        }
+        
         let task = session.dataTask(with: request)
         task.resume()
     }
@@ -380,8 +384,11 @@ extension Readability: URLSessionDataDelegate {
         
         // https://stackoverflow.com/a/45290601/89373
         downloadBuffer.append(data)
-        let percentDownloaded = Double(downloadBuffer.count) / Double(expectedContentLength)
-        progressCallback(percentDownloaded * HTMLDownloadProgressEndsAt)
+        
+        if expectedContentLength > 0 {
+            let percentDownloaded = Double(downloadBuffer.count) / Double(expectedContentLength)
+            progressCallback(percentDownloaded * HTMLDownloadProgressEndsAt)
+        }
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
