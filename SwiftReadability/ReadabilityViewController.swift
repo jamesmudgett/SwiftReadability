@@ -18,22 +18,34 @@ open class ReadabilityViewController: UIViewController {
         view = webView
     }
     
-    private func makeReadabilityCallback(url: URL) -> ((String?, Error?) -> Void) {
+    private func makeReadabilityCallback(url: URL, userCompletionHandler: ((_ content: String?, _ error: Error?) -> Void)? = nil) -> ((String?, Error?) -> Void) {
         return { (content: String?, error: Error?) in
             guard let content = content else {
-                print(error?.localizedDescription)
+                print(error?.localizedDescription as Any)
+                if let userCompletionHandler = userCompletionHandler {
+                    userCompletionHandler(nil, error)
+                }
                 return
             }
             
             DispatchQueue.main.async { [weak self] in
                 _ = self?.webView.loadHTMLString(content, baseURL: url)
                 self?.inProgressReadability = nil
+                
+                if let userCompletionHandler = userCompletionHandler {
+                    userCompletionHandler(content, error)
+                }
             }
         }
     }
     
-    public func loadURL(url: URL) {
-        inProgressReadability = Readability(url: url, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all, completionHandler: makeReadabilityCallback(url: url))
+    public func loadURL(url: URL, completionHandler: ((_ content: String?, _ error: Error?) -> Void)? = nil, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+        inProgressReadability = Readability(
+            url: url,
+            conversionTime: .atDocumentEnd,
+            suppressSubresourceLoadingDuringConversion: .all,
+            completionHandler: makeReadabilityCallback(url: url, userCompletionHandler: completionHandler),
+            progressCallback: progressCallback)
     }
     
     public func loadHTML(html: String, withBaseURL url: URL) {

@@ -10,7 +10,7 @@ import Foundation
 
 // https://stackoverflow.com/a/44611946/89373
 extension String {
-    init(malformedUTF8 data: Data) {
+    init(malformedData data: Data, encoding: String.Encoding) {
         var str = ""
         var iterator = data.makeIterator()
         var utf8codec = UTF8()
