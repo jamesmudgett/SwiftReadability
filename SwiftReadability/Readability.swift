@@ -122,6 +122,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
     }
     
+    deinit {
+        webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+    }
+    
     private func addReadabilityUserScript() {
         let script = ReadabilityUserScript(scriptInjectionTime: .atDocumentEnd)
         webView.configuration.userContentController.addUserScript(script)
