@@ -43,6 +43,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let conversionTime: ReadabilityConversionTime
     private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
     private var allowNavigationFailures = 0
+    private let meaningfulContentMinLength: Int
     
     fileprivate var webViewProgressStartsFrom: Double = 0.0
     fileprivate var webViewProgressEndsAt: Double = 1.0
@@ -51,7 +52,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     fileprivate var expectedContentLength = 0
     fileprivate var htmlDownloadCompletionHandler: ((String?, Error?) -> Void)?
     
-    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
         let webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
         func completionHandlerWrapper(_ content: String?, _ error: Error?) {
@@ -64,6 +65,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         self.completionHandler = completionHandlerWrapper
         self.conversionTime = conversionTime
         self.suppressSubresourceLoadingDuringConversion = suppressSubresourceLoadingDuringConversion
+        self.meaningfulContentMinLength = meaningfulContentMinLength ?? 250
         self.webView = webView
         
         super.init()
@@ -76,11 +78,12 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         addReadabilityUserScript()
     }
     
-    public convenience init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+    public convenience init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
         
         self.init(
             conversionTime: conversionTime,
             suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
+            meaningfulContentMinLength: meaningfulContentMinLength,
             completionHandler: completionHandler,
             progressCallback: progressCallback)
         
@@ -105,9 +108,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
     }
     
-    public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         
-        self.init(conversionTime: conversionTime, suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion, completionHandler: completionHandler)
+        self.init(
+            conversionTime: conversionTime,
+            suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
+            meaningfulContentMinLength: meaningfulContentMinLength,
+            completionHandler: completionHandler)
         
         var htmlToLoad = html
         if suppressSubresourceLoadingDuringConversion != .none {
@@ -244,12 +251,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     }
     
     private func initializeReadability(completionHandler: @escaping (_ html: String?, _ error: Error?) -> Void) {
-        let readabilityInitializationJS: String
+        var readabilityInitializationJS: String
         do {
-            readabilityInitializationJS = try loadFile(name: "readability_initialization", type: "js")
+            readabilityInitializationJS = try loadFile(name: "readability_initialization.template", type: "js")
         } catch {
-            fatalError("Couldn't load readability_initialization.js")
+            fatalError("Couldn't load readability_initialization.template.js")
         }
+        readabilityInitializationJS = readabilityInitializationJS.replacingOccurrences(of: "##MEANINGFUL_CONTENT_MIN_LENGTH##", with: String(meaningfulContentMinLength))
         
         webView.evaluateJavaScript(readabilityInitializationJS) { [weak self] (result, error) in
             let parseError = ReadabilityError.unableToParseScriptResult(rawResult: result as? String)
