@@ -155,6 +155,8 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         let task = session.dataTask(with: request)
         task.resume()
+        
+        session.finishTasksAndInvalidate()
     }
     
     fileprivate func suppressSubresources(html: String) -> String? {
