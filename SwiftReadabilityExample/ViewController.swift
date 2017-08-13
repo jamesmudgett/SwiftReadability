@@ -22,7 +22,7 @@ class ViewController: UIViewController {
 //    let articleURL = URL(string: "http://www.hiraganatimes.com/ja/past-articles/food/4345/")
 //    let articleURL = URL(string: "https://www.businessinsider.jp/post-34527")
 //    let articleURL = URL(string: "http://www.huffingtonpost.jp/2017/07/01/earthquake-kumamoto0702_n_17358712.html?utm_hp_ref=japan&ir=Japan")
-//    let articleURL = URL(string: "http://jin115.com/archives/52183461.html")
+//    let articleURL = URL(string: "http://www.ichitetsu.com/2017/08/84-064b.html")
     let articleURL = URL(string: "https://github.com/blog/2195-the-shape-of-open-source")
     
     

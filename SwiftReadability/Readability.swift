@@ -57,7 +57,9 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         func completionHandlerWrapper(_ content: String?, _ error: Error?) {
             // See: https://stackoverflow.com/a/32443423/89373
+            webView.stopLoading()
             webView.configuration.userContentController.removeScriptMessageHandler(forName: "readabilityJavascriptLoaded")
+            webView.navigationDelegate = nil
             completionHandler(content, error)
         }
         
