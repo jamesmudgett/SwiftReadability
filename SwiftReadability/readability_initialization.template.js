@@ -9,7 +9,7 @@ var uri = {
     pathBase: loc.protocol + "//" + loc.host + loc.pathname.substr(0, loc.pathname.lastIndexOf("/") + 1)
 };
 var article = new Readability(uri, document, {
-    meaningfulContentMinLength: ##MEANINGFUL_CONTENT_MIN_LENGTH##
+    wordThreshold: ##MEANINGFUL_CONTENT_MIN_LENGTH##
 }).parse();
 
 JSON.stringify({
