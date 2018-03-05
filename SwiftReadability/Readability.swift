@@ -8,7 +8,6 @@
 
 import Foundation
 import WebKit
-import SwiftSoup
 
 public enum ReadabilityError: Error {
     case unableToParseScriptResult(rawResult: String?)
@@ -25,15 +24,7 @@ public enum ReadabilitySubresourceSuppressionType {
     case none
     case all
     case allExceptScripts
-    case imagesOnly
 }
-
-private let tagsWithSubresourcesToStrip = ["script", "style"]
-private let tagsWithExternalSubresourcesViaSrc = ["img", "embed", "object", "audio", "iframe"]
-private let tagsWithExternalSubresourcesViaHref = ["link", "a"]
-
-fileprivate let HTMLDownloadProgressEndsAt = 0.75
-fileprivate let RawPageLoadingProgressEndsAt = 0.9
 
 public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private let webView: WKWebView
@@ -45,8 +36,6 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private var allowNavigationFailures = 0
     private let meaningfulContentMinLength: Int
     
-    fileprivate var webViewProgressStartsFrom: Double = 0.0
-    fileprivate var webViewProgressEndsAt: Double = 1.0
     fileprivate var progressCallback: ((_ estimatedProgress: Double) -> Void)?
     fileprivate var downloadBuffer = Data()
     fileprivate var expectedContentLength = 0
@@ -77,6 +66,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         webView.configuration.userContentController.add(self, name: "readabilityJavascriptLoaded")
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         
+        addContentRules()
         addReadabilityUserScript()
     }
     
@@ -89,25 +79,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             completionHandler: completionHandler,
             progressCallback: progressCallback)
         
-        if suppressSubresourceLoadingDuringConversion != .none {
-            webViewProgressEndsAt = HTMLDownloadProgressEndsAt
-            
-            downloadHTMLWithoutSubresources(url: url) { [weak self] (html, error) in
-                guard let html = html, error == nil else {
-                    completionHandler(nil, ReadabilityError.loadingFailure)
-                    return
-                }
-                
-                DispatchQueue.main.async { [weak self] in
-                    self?.webView.loadHTMLString(html, baseURL: url)
-                }
-            }
-        } else {
-            webViewProgressEndsAt = RawPageLoadingProgressEndsAt
-            
-            let request = URLRequest(url: url)
-            webView.load(request)
-        }
+        webView.load(URLRequest(url: url))
     }
     
     public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
@@ -118,16 +90,8 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             meaningfulContentMinLength: meaningfulContentMinLength,
             completionHandler: completionHandler)
         
-        var htmlToLoad = html
-        if suppressSubresourceLoadingDuringConversion != .none {
-            guard let transformedHtml = suppressSubresources(html: html) else {
-                completionHandler(nil, ReadabilityError.loadingFailure)
-                return
-            }
-            htmlToLoad = transformedHtml
-        }
         DispatchQueue.main.async { [weak self] in
-            self?.webView.loadHTMLString(htmlToLoad, baseURL: baseUrl)
+            self?.webView.loadHTMLString(html, baseURL: baseUrl)
         }
     }
     
@@ -140,96 +104,40 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         webView.configuration.userContentController.addUserScript(script)
     }
     
-    private func downloadHTMLWithoutSubresources(url: URL, callbackHandler: @escaping (String?, Error?) -> Void) {
-        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 30
-        
-        htmlDownloadCompletionHandler = callbackHandler
-        
-        if let progressCallback = progressCallback {
-            progressCallback(0.0)
+    private func addContentRules() {
+        if suppressSubresourceLoadingDuringConversion == .none {
+            return
         }
         
-        let task = session.dataTask(with: request)
-        task.resume()
-        
-        session.finishTasksAndInvalidate()
-    }
-    
-    fileprivate func suppressSubresources(html: String) -> String? {
-        guard let doc = try? SwiftSoup.parse(html) else {
-            print("Failed to parse HTML in order to strip subresources.")
-            return nil
-        }
-        do {
-            if suppressSubresourceLoadingDuringConversion == .all || suppressSubresourceLoadingDuringConversion == .allExceptScripts {
-                let toStrip = suppressSubresourceLoadingDuringConversion == .allExceptScripts ? tagsWithSubresourcesToStrip.filter { $0 != "script" } : tagsWithSubresourcesToStrip
-                for tagName in toStrip {
-                    for tag in try doc.getElementsByTag(tagName) {
-                        try tag.remove()
-                    }
-                }
-            }
-            
-            let srcTags: [String]
-            switch suppressSubresourceLoadingDuringConversion {
-            case .imagesOnly: srcTags = ["img"]
-            default: srcTags = tagsWithExternalSubresourcesViaSrc
-            }
-            for tagName in srcTags {
-                for tag in try doc.getElementsByTag(tagName) {
-                    if try tag.attr("src") != "" {
-                        try tag.attr("data-swift-readability-src", tag.attr("src"))
-                        if tagName == "img" {
-                            try tag.attr("src", "")
-                        } else {
-                            try tag.removeAttr("src")
-                        }
-                    }
-                }
-            }
-            if ![ReadabilitySubresourceSuppressionType.imagesOnly, ReadabilitySubresourceSuppressionType.none].contains(suppressSubresourceLoadingDuringConversion) {
-                for tagName in tagsWithExternalSubresourcesViaHref {
-                    for tag in try doc.getElementsByTag(tagName) {
-                        try tag.attr("data-swift-readability-href", tag.attr("href"))
-                        try tag.removeAttr("href")
-                    }
-                }
-            }
-            return try doc.outerHtml()
-        } catch {
-            print("Failed to reconstitute HTML in order to strip subresources.")
-            return nil
-        }
-    }
-    
-    private func restoreSubresources(html: String) -> String? {
-        guard let doc = try? SwiftSoup.parse(html) else {
-            print("Failed to parse HTML in order to restore subresources.")
-            return nil
+        // We would like to include images here, but they're loaded for readability_images.js sizing calculations.
+        var resourceTypesToBlock = ["media", "svg-document", "popup", "style-sheet", "font"]
+        if suppressSubresourceLoadingDuringConversion == .all {
+            resourceTypesToBlock.append("script")
         }
         
-        do {
-            for tagName in tagsWithExternalSubresourcesViaSrc {
-                for tag in try doc.getElementsByTag(tagName) {
-                    try tag.attr("src", tag.attr("data-swift-readability-src"))
-                    try tag.removeAttr("data-swift-readability-src")
+        let blockRules = """
+         [{
+             "trigger": {
+                 "url-filter": ".*",
+                 "resource-type": [\(resourceTypesToBlock.map { "\"\($0)\"" } .joined(separator: ", "))]
+             },
+             "action": {
+                 "type": "block"
+             }
+         }]
+        """
+        
+        WKContentRuleListStore.default().compileContentRuleList(
+            forIdentifier: "ContentBlockingRules",
+            encodedContentRuleList: blockRules) { [weak self] (contentRuleList, error) in
+                if let _ = error {
+                    return
+                }
+                
+                if let configuration = self?.webView.configuration, let contentRuleList = contentRuleList {
+                    configuration.userContentController.add(contentRuleList)
                 }
             }
-            for tagName in tagsWithExternalSubresourcesViaHref {
-                for tag in try doc.getElementsByTag(tagName) {
-                    try tag.attr("href", tag.attr("data-swift-readability-href"))
-                    try tag.removeAttr("data-swift-readability-href")
-                }
-            }
-            return try doc.outerHtml()
-        } catch {
-            print("Failed to reconstitute HTML in order to restore subresources.")
-            return nil
-        }
     }
     
     private func renderHTML(readabilityTitle: String?, readabilityByline: String?, readabilityContent: String) -> String {
@@ -270,19 +178,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 self?.completionHandler(nil, error)
                 return
             }
-            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String?], let contentOptional = jsonResult["content"], var content = contentOptional, let titleOptional = jsonResult["title"], let bylineOptional = jsonResult["byline"] else {
+            guard let jsonResultOptional = try? JSONSerialization.jsonObject(with: resultData, options: []), let jsonResult = jsonResultOptional as? [String: String?], let contentOptional = jsonResult["content"], let content = contentOptional, let titleOptional = jsonResult["title"], let bylineOptional = jsonResult["byline"] else {
                 self?.completionHandler(nil, parseError)
                 return
             }
-            
-            if (self?.suppressSubresourceLoadingDuringConversion ?? .none) != .none {
-                guard let restoredSubresourcesContent = self?.restoreSubresources(html: content) else {
-                    self?.completionHandler(nil, ReadabilityError.unableToParseScriptResult(rawResult: nil))
-                    return
-                }
-                content = restoredSubresourcesContent
-            }
-            
             guard let html = self?.renderHTML(
                 readabilityTitle: titleOptional,
                 readabilityByline: bylineOptional,
@@ -321,8 +220,6 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 return
             }
             DispatchQueue.main.async { [weak self] in
-                self?.webViewProgressStartsFrom = RawPageLoadingProgressEndsAt
-                self?.webViewProgressEndsAt = 1.0
                 self?.webView.configuration.userContentController.removeAllUserScripts()
                 self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
             }
@@ -334,8 +231,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             let estimatedProgress = webView.estimatedProgress
             
             if let progressCallback = progressCallback {
-                progressCallback(
-                    webViewProgressStartsFrom + (webViewProgressEndsAt - webViewProgressStartsFrom) * estimatedProgress)
+                progressCallback(estimatedProgress)
             }
         } else {
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
@@ -387,71 +283,5 @@ extension Readability: URLSessionDataDelegate {
         expectedContentLength = Int(response.expectedContentLength)
         
         completionHandler(.allow)
-    }
-    
-    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        guard let progressCallback = progressCallback else { return }
-        
-        webViewProgressStartsFrom = HTMLDownloadProgressEndsAt
-        
-        // https://stackoverflow.com/a/45290601/89373
-        downloadBuffer.append(data)
-        
-        if expectedContentLength > 0 {
-            let percentDownloaded = Double(downloadBuffer.count) / Double(expectedContentLength)
-            progressCallback(percentDownloaded * HTMLDownloadProgressEndsAt)
-        }
-    }
-    
-    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let callbackHandler = htmlDownloadCompletionHandler else { return }
-        
-        guard error == nil else {
-            callbackHandler(nil, error)
-            return
-        }
-        
-        var data = downloadBuffer
-        
-        guard let asciiHtml = String(data: data, encoding: .ascii), let doc = try? SwiftSoup.parse(asciiHtml) else {
-            print("Failed to parse HTML in order to detect charset.")
-            callbackHandler(nil, ReadabilityError.decodingFailure)
-            return
-        }
-        var encoding = String.Encoding.utf8
-        func updateEncoding(charset: String) {
-            switch charset.lowercased() {
-            case "shift_jis": encoding = String.Encoding.shiftJIS
-            case "euc-jp": encoding = String.Encoding.japaneseEUC
-            case "iso-2022-jp": encoding = String.Encoding.iso2022JP
-            default: break
-            }
-        }
-        if let contentType = try? doc.select("meta[http-equiv=content-type]").first()?.attr("content"), let charset = contentType?.lowercased().components(separatedBy: "charset=").last {
-            updateEncoding(charset: charset)
-        }
-        if let charsetOptional = try? doc.select("meta[charset]").first()?.attr("charset"), let charset = charsetOptional {
-            updateEncoding(charset: charset)
-        }
-        var html: String? = String(data: data, encoding: encoding)
-        if html == nil {
-            // https://stackoverflow.com/a/44611946/89373
-            data.append(0)
-            let s = data.withUnsafeBytes { (p: UnsafePointer<CChar>) in String(cString: p) }
-            let clean = s.replacingOccurrences(of: "\u{FFFD}", with: "")
-            html = clean
-        }
-        
-        guard let cleanedHtml = html else {
-            callbackHandler(nil, ReadabilityError.decodingFailure)
-            return
-        }
-        
-        guard let transformedHtml = suppressSubresources(html: cleanedHtml) else {
-            callbackHandler(nil, ReadabilityError.decodingFailure)
-            return
-        }
-        
-        callbackHandler(transformedHtml, nil)
     }
 }

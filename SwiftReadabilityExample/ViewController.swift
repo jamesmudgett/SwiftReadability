@@ -25,7 +25,6 @@ class ViewController: UIViewController {
 //    let articleURL = URL(string: "http://www.ichitetsu.com/2017/08/84-064b.html")
     let articleURL = URL(string: "https://github.com/blog/2195-the-shape-of-open-source")
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         

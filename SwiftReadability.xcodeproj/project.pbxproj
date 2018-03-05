@@ -40,7 +40,6 @@
 		FA4B90051EF60FBB005AB3C8 /* FileLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DDEBBB1D1B55A30043F6AD /* FileLoading.swift */; };
 		FA4B90061EF60FBB005AB3C8 /* Readability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DDEBAD1D18C8D90043F6AD /* Readability.swift */; };
 		FA4B90071EF60FBB005AB3C8 /* ReadabilityUserScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899E47BE1D1B760F00A44BB9 /* ReadabilityUserScript.swift */; };
-		FA6D19001EF5A4B8005A28E3 /* SwiftSoup.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA6D18FF1EF5A4AC005A28E3 /* SwiftSoup.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,7 +103,6 @@
 			files = (
 				89DDEBAC1D18C6420043F6AD /* WebKit.framework in Frameworks */,
 				89DDEBAA1D18C63B0043F6AD /* UIKit.framework in Frameworks */,
-				FA6D19001EF5A4B8005A28E3 /* SwiftSoup.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,7 +532,7 @@
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
 				INFOPLIST_FILE = SwiftReadability/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadability;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -559,7 +557,7 @@
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
 				INFOPLIST_FILE = SwiftReadability/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadability;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -589,7 +587,7 @@
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = SwiftReadabilityExample/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -619,7 +617,7 @@
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = SwiftReadabilityExample/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chloehorgan.SwiftReadabilityExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
