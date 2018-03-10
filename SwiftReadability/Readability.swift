@@ -110,7 +110,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         }
         
         // We would like to include images here, but they're loaded for readability_images.js sizing calculations.
-        var resourceTypesToBlock = ["media", "svg-document", "popup", "style-sheet", "font"]
+        var resourceTypesToBlock = ["images", "media", "svg-document", "popup", "style-sheet", "font"]
         if suppressSubresourceLoadingDuringConversion == .all {
             resourceTypesToBlock.append("script")
         }
@@ -144,6 +144,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         do {
             let template = try loadFile(name: "Reader.template", type: "html")
             
+            let readabilityImagesJS = try loadFile(name: "readability_images", type: "js")
             let mozillaCSS = try loadFile(name: "Reader", type: "css")
             let swiftReadabilityCSS = try loadFile(name: "SwiftReadability", type: "css")
             let css = mozillaCSS + swiftReadabilityCSS
@@ -153,9 +154,9 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 .replacingOccurrences(of: "##TITLE##", with: readabilityTitle ?? "")
                 .replacingOccurrences(of: "##BYLINE##", with: readabilityByline ?? "")
                 .replacingOccurrences(of: "##CONTENT##", with: readabilityContent)
+                .replacingOccurrences(of: "##SCRIPT##", with: readabilityImagesJS)
             
             return html
-            
         } catch {
             // TODO: Need better error handling
             fatalError("Failed to render Readability HTML")
@@ -190,23 +191,6 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                     return
             }
             completionHandler(html, nil)
-        }
-    }
-    
-    private func updateImageMargins(completionHandler: @escaping (_ html: String?, _ error: Error?) -> Void) {
-        let readabilityImagesJS: String
-        do {
-            readabilityImagesJS = try loadFile(name: "readability_images", type: "js")
-        } catch {
-            fatalError("Couldn't load readability_images.js")
-        }
-        
-        webView.evaluateJavaScript(readabilityImagesJS) { [weak self] (result, error) in
-            guard let result = result as? String else {
-                self?.completionHandler(nil, error)
-                return
-            }
-            completionHandler(result, nil)
         }
     }
     
@@ -263,8 +247,12 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         if !(isRenderingReadabilityHTML || hasRenderedReadabilityHTML) {
             rawPageFinishedLoading()
         } else if !isRenderingReadabilityHTML {
-            updateImageMargins() { [weak self] (html: String?, error: Error?) in
-                self?.completionHandler(html, error)
+            webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] (result, error) in
+                guard let html = result as? String else {
+                    self?.completionHandler(nil, error)
+                    return
+                }
+                self?.completionHandler(html, nil)
             }
         }
     }

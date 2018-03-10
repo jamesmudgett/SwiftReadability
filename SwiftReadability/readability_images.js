@@ -43,12 +43,14 @@ function updateImageMargins() {
         if (img.width > 0) {
             setImageMargins(img);
         } else {
-            img.onload = function() {
-                setImageMargins(img);
-            }
+            img.addEventListener('load', function() {
+                setImageMargins(this);
+            }.bind(img), {once: true, passive: true})
         }
     }
 }
 
-updateImageMargins();
-document.documentElement.outerHTML.toString();
+document.addEventListener("DOMContentLoaded", function(event) {
+  //document.body.innerHTML = "what" + "<br>" + document.body.innerHTML
+    updateImageMargins();
+}, false)
