@@ -49,6 +49,10 @@ open class ReadabilityViewController: UIViewController {
     }
     
     public func loadHTML(html: String, withBaseURL url: URL) {
-        inProgressReadability = Readability(html: html, conversionTime: .atDocumentEnd, suppressSubresourceLoadingDuringConversion: .all, completionHandler: makeReadabilityCallback(url: url))
+        inProgressReadability = Readability(
+            html: html,
+            conversionTime: .atDocumentEnd,
+            suppressSubresourceLoadingDuringConversion: .all,
+            completionHandler: makeReadabilityCallback(url: url))
     }
 }

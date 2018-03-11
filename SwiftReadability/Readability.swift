@@ -40,7 +40,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     fileprivate var expectedContentLength = 0
     fileprivate var htmlDownloadCompletionHandler: ((String?, Error?) -> Void)?
     
-    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil, contentRulesAddedCallback: ((WKWebView) -> Void)? = nil) {
         let webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
         func completionHandlerWrapper(_ content: String?, _ error: Error?) {
@@ -60,12 +60,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         
         super.init()
         
+        addContentRules(completion: contentRulesAddedCallback)
+        
         webView.configuration.suppressesIncrementalRendering = true
         webView.navigationDelegate = self
         webView.configuration.userContentController.add(self, name: "readabilityJavascriptLoaded")
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         
-        addContentRules()
         addReadabilityUserScript()
     }
     
@@ -76,9 +77,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
             meaningfulContentMinLength: meaningfulContentMinLength,
             completionHandler: completionHandler,
-            progressCallback: progressCallback)
-        
-        webView.load(URLRequest(url: url))
+            progressCallback: progressCallback,
+            contentRulesAddedCallback: { webView in
+                webView.load(URLRequest(url: url))
+            })
     }
     
     public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
@@ -87,11 +89,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             conversionTime: conversionTime,
             suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
             meaningfulContentMinLength: meaningfulContentMinLength,
-            completionHandler: completionHandler)
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.webView.loadHTMLString(html, baseURL: baseUrl)
-        }
+            completionHandler: completionHandler,
+            contentRulesAddedCallback: { webView in
+                webView.loadHTMLString(html, baseURL: baseUrl)
+            })
     }
     
     deinit {
@@ -103,13 +104,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         webView.configuration.userContentController.addUserScript(script)
     }
     
-    private func addContentRules() {
+    private func addContentRules(completion: ((WKWebView) -> Void)? = nil) {
         if suppressSubresourceLoadingDuringConversion == .none {
             return
         }
         
         // We would like to include images here, but they're loaded for readability_images.js sizing calculations.
-        var resourceTypesToBlock = ["images", "media", "svg-document", "popup", "style-sheet", "font"]
+        var resourceTypesToBlock = ["image", "media", "svg-document", "popup", "style-sheet", "font"]
         if suppressSubresourceLoadingDuringConversion == .all {
             resourceTypesToBlock.append("script")
         }
@@ -129,12 +130,17 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         WKContentRuleListStore.default().compileContentRuleList(
             forIdentifier: "ContentBlockingRules",
             encodedContentRuleList: blockRules) { [weak self] (contentRuleList, error) in
-                if let _ = error {
+                if let error = error {
+                    print(error.localizedDescription)
                     return
                 }
                 
                 if let configuration = self?.webView.configuration, let contentRuleList = contentRuleList {
                     configuration.userContentController.add(contentRuleList)
+                }
+                
+                if let completion = completion, let webView = self?.webView {
+                    completion(webView)
                 }
             }
     }
