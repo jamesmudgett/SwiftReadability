@@ -34,13 +34,14 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
     private var allowNavigationFailures = 0
     private let meaningfulContentMinLength: Int
+    private let sentryDsn: String?
     
     fileprivate var progressCallback: ((_ estimatedProgress: Double) -> Void)?
     fileprivate var downloadBuffer = Data()
     fileprivate var expectedContentLength = 0
     fileprivate var htmlDownloadCompletionHandler: ((String?, Error?) -> Void)?
     
-    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil, contentRulesAddedCallback: ((WKWebView) -> Void)? = nil) {
+    public init(conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, sentryDsn: String? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil, contentRulesAddedCallback: ((WKWebView) -> Void)? = nil) {
         let webView = WKWebView(frame: CGRect.zero, configuration: WKWebViewConfiguration())
         
         func completionHandlerWrapper(_ content: String?, _ error: Error?) {
@@ -56,6 +57,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         self.conversionTime = conversionTime
         self.suppressSubresourceLoadingDuringConversion = suppressSubresourceLoadingDuringConversion
         self.meaningfulContentMinLength = meaningfulContentMinLength ?? 250
+        self.sentryDsn = sentryDsn
         self.webView = webView
         
         super.init()
@@ -70,12 +72,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         addReadabilityUserScript()
     }
     
-    public convenience init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+    public convenience init(url: URL, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, sentryDsn: String? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
         
         self.init(
             conversionTime: conversionTime,
             suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
             meaningfulContentMinLength: meaningfulContentMinLength,
+            sentryDsn: sentryDsn,
             completionHandler: completionHandler,
             progressCallback: progressCallback,
             contentRulesAddedCallback: { webView in
@@ -83,12 +86,13 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             })
     }
     
-    public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
+    public convenience init(html: String, baseUrl: URL? = nil, conversionTime: ReadabilityConversionTime = .atDocumentEnd, suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType = .none, meaningfulContentMinLength: Int? = nil, sentryDsn: String? = nil, completionHandler: @escaping (_ content: String?, _ error: Error?) -> Void) {
         
         self.init(
             conversionTime: conversionTime,
             suppressSubresourceLoadingDuringConversion: suppressSubresourceLoadingDuringConversion,
             meaningfulContentMinLength: meaningfulContentMinLength,
+            sentryDsn: sentryDsn,
             completionHandler: completionHandler,
             contentRulesAddedCallback: { webView in
                 webView.loadHTMLString(html, baseURL: baseUrl)
@@ -150,6 +154,10 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             let template = try loadFile(name: "Reader.template", type: "html")
             
             let readabilityImagesJS = try loadFile(name: "readability_images", type: "js")
+            var sentryScript = ""
+            if let sentryDsn = sentryDsn {
+                sentryScript = "<script src=\"https://cdn.ravenjs.com/3.23.1/raven.min.js\" crossorigin=\"anonymous\"></script><script>Raven.config('\(sentryDsn)').install()</script>"
+            }
             let mozillaCSS = try loadFile(name: "Reader", type: "css")
             let swiftReadabilityCSS = try loadFile(name: "SwiftReadability", type: "css")
             let css = mozillaCSS + swiftReadabilityCSS
@@ -160,6 +168,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
                 .replacingOccurrences(of: "##BYLINE##", with: readabilityByline ?? "")
                 .replacingOccurrences(of: "##CONTENT##", with: readabilityContent)
                 .replacingOccurrences(of: "##SCRIPT##", with: readabilityImagesJS)
+                .replacingOccurrences(of: "##SENTRY##", with: sentryScript)
             
             return html
         } catch {
