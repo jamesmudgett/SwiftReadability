@@ -30,7 +30,6 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     private let webView: WKWebView
     private let completionHandler: ((_ content: String?, _ error: Error?) -> Void)
     private var isRenderingReadabilityHTML = false
-    private var hasRenderedReadabilityHTML = false
     private let conversionTime: ReadabilityConversionTime
     private let suppressSubresourceLoadingDuringConversion: ReadabilitySubresourceSuppressionType
     private var allowNavigationFailures = 0
@@ -198,15 +197,11 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         isRenderingReadabilityHTML = true
         initializeReadability() { [weak self] (html: String?, error: Error?) in
             self?.isRenderingReadabilityHTML = false
-            self?.hasRenderedReadabilityHTML = true
             guard let html = html else {
                 self?.completionHandler(nil, error)
                 return
             }
-            DispatchQueue.main.async { [weak self] in
-                self?.webView.configuration.userContentController.removeAllUserScripts()
-                self?.webView.loadHTMLString(html, baseURL: self?.webView.url?.baseURL)
-            }
+            self?.completionHandler(html, nil)
         }
     }
     
@@ -230,7 +225,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             return
         }
         
-        if isRenderingReadabilityHTML || hasRenderedReadabilityHTML {
+        if isRenderingReadabilityHTML {
             return
         }
         
@@ -244,16 +239,8 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     //  MARK: WKNavigationDelegate
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if !(isRenderingReadabilityHTML || hasRenderedReadabilityHTML) {
+        if !isRenderingReadabilityHTML {
             rawPageFinishedLoading()
-        } else if !isRenderingReadabilityHTML {
-            webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] (result, error) in
-                guard let html = result as? String else {
-                    self?.completionHandler(nil, error)
-                    return
-                }
-                self?.completionHandler(html, nil)
-            }
         }
     }
     
