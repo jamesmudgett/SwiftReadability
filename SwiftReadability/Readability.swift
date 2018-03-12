@@ -69,6 +69,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
         webView.configuration.userContentController.add(self, name: "readabilityJavascriptLoaded")
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         
+        setJavascript(enabled: false)
         addReadabilityUserScript()
     }
     
@@ -101,6 +102,12 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
     
     deinit {
         webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+    }
+    
+    private func setJavascript(enabled: Bool) {
+        let preferences = WKPreferences()
+        preferences.javaScriptEnabled = enabled
+        webView.configuration.preferences = preferences
     }
     
     private func addReadabilityUserScript() {
