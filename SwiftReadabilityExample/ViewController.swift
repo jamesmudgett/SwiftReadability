@@ -32,9 +32,9 @@ class ViewController: UIViewController {
         
         guard let articleURL = articleURL else { return }
         
-        readabilityViewController.willMove(toParentViewController: self)
-        addChildViewController(readabilityViewController)
-        readabilityViewController.didMove(toParentViewController: self)
+        readabilityViewController.willMove(toParent: self)
+        addChild(readabilityViewController)
+        readabilityViewController.didMove(toParent: self)
         
         view.addSubview(readabilityViewController.view)
         readabilityViewController.view.frame = view.frame
