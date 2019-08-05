@@ -163,7 +163,7 @@ public class Readability: NSObject, WKNavigationDelegate, WKScriptMessageHandler
             let readabilityImagesJS = try loadFile(name: "readability_images", type: "js")
             var sentryScript = ""
             if let sentryDsn = sentryDsn {
-                sentryScript = "<script src=\"https://cdn.ravenjs.com/3.23.1/raven.min.js\" crossorigin=\"anonymous\"></script><script>Raven.config('\(sentryDsn)').install()</script>"
+                sentryScript = "<script src=\"https://cdn.ravenjs.com/3.27.0/raven.min.js\" crossorigin=\"anonymous\"></script><script>Raven.config('\(sentryDsn)').install()</script>"
             }
             let mozillaCSS = try loadFile(name: "Reader", type: "css")
             let swiftReadabilityCSS = try loadFile(name: "SwiftReadability", type: "css")
