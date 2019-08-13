@@ -18,12 +18,12 @@ open class ReadabilityViewController: UIViewController {
         view = webView
     }
     
-    private func makeReadabilityCallback(url: URL, userCompletionHandler: ((_ content: String?, _ error: Error?) -> Void)? = nil) -> ((String?, Error?) -> Void) {
-        return { (content: String?, error: Error?) in
+    private func makeReadabilityCallback(url: URL, userCompletionHandler: ((_ content: String?, _ components: [String: String?]?, _ error: Error?) -> Void)? = nil) -> ((String?, [String: String?]?, Error?) -> Void) {
+        return { (content: String?, components: [String: String?]?, error: Error?) in
             guard let content = content else {
                 print(error?.localizedDescription as Any)
                 if let userCompletionHandler = userCompletionHandler {
-                    userCompletionHandler(nil, error)
+                    userCompletionHandler(nil, nil, error)
                 }
                 return
             }
@@ -33,13 +33,13 @@ open class ReadabilityViewController: UIViewController {
                 self?.inProgressReadability = nil
                 
                 if let userCompletionHandler = userCompletionHandler {
-                    userCompletionHandler(content, error)
+                    userCompletionHandler(content, components, error)
                 }
             }
         }
     }
     
-    public func loadURL(url: URL, completionHandler: ((_ content: String?, _ error: Error?) -> Void)? = nil, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
+    public func loadURL(url: URL, completionHandler: ((_ content: String?, _ components: [String: String?]?, _ error: Error?) -> Void)? = nil, progressCallback: ((_ estimatedProgress: Double) -> Void)? = nil) {
         inProgressReadability = Readability(
             url: url,
             conversionTime: .atDocumentEnd,

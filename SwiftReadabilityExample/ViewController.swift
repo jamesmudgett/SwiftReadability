@@ -43,7 +43,8 @@ class ViewController: UIViewController {
         view.addSubview(progressView)
         progressView.center = view.center
         
-        let completionHandler: (_ content: String?, _ error: Error?) -> Void = { _, _ in
+        let completionHandler: (_ content: String?, _ components: [String: String?]?, _ error: Error?) -> Void = { _, components, _ in
+            debugPrint(components)
             progressView.isHidden = true
         }
         
